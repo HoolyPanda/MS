@@ -18,6 +18,40 @@ mKB = {
         ] 
     ]
 }
+fgbKB =  {
+    'one_time': True,
+    'buttons':
+    [
+        [
+            {
+                "action":
+                    {
+                        "type":"text",
+                        "payload": "{\"mainMenu\":\"fuck_go_back\"}",
+                        "label": "Назад"
+                    },
+                "color": "secondary"
+            }
+        ] 
+    ]
+}
+undKB =  {
+    'one_time': True,
+    'buttons':
+    [
+        [
+            {
+                "action":
+                    {
+                        "type":"text",
+                        "payload": "{\"mainMenu\":\"undo\"}",
+                        "label": "Отменить запись"
+                    },
+                "color": "secondary"
+            }
+        ] 
+    ]
+}
 bKb = {
    'one_time': True,
     'buttons':
@@ -28,12 +62,14 @@ bKb = {
                     {
                         "type":"text",
                         "payload": "{\"command\":\"start\"}",
-                        "label": "Начать"
+                        "label": "Записаться"
                     },
                 "color": "positive"
             }
         ]  
     ]
 }
+undoKB = json.dumps(undKB)
+fuck_go_backKB = json.dumps(fgbKB)
 beginKb = json.dumps(bKb)
 confKB = json.dumps(mKB)

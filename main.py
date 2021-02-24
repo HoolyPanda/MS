@@ -67,7 +67,7 @@ def get_empty_gaps():
 
 # get_empty_gaps()
 my_id = 160500068
-groupid = 171435747
+groupid = 138409844
 
 authed = False
 
@@ -92,7 +92,7 @@ class Anceteur():
         self.authed = False
         self.longpollServer = None
         self.cup = 1
-        self.token = open('token.cfg', 'r').readline()
+        self.token = open('./token.cfg', 'r').readline().replace('\n', '')
         self.currentAncetOnVoting = None
         self.idToInvite = None
         self.ancetsToSendStack = []
@@ -101,14 +101,14 @@ class Anceteur():
         """Authentificate bot as group."""
         try:
             print("You are going to log in as Полигон")
-            os.system('clear')
+            # os.system('clear')
             self.session = vk_api.VkApi(token=self.token)
             self.session._auth_token()
             print("authred")
             vk = self.session.get_api()
             global authed
             self.authed = True
-            self.longpollserver = bot_longpoll.VkBotLongPoll(self.session, 172301854)
+            self.longpollserver = bot_longpoll.VkBotLongPoll(self.session, 138409844)
             self.gLPS = threading.Thread(target=self.lps, args=(self.session, ), daemon=True)
             # self.gLPS.start()
             print('gAut Online')
@@ -135,27 +135,25 @@ class Anceteur():
             for i in vals:
                 for j in i:
                     tmp.append(j)
-            if ("записаться" in event.raw.get("object").get("text").lower() or payload == '{\"command\":\"start\"}'):
+            if ("записаться" in event.raw.get("object").get("text").lower() or payload == '{\"command\":\"start\"}' or event.raw.get("object").get("text").lower() == 'd'):
                 if val not in tmp:
                     msg = "Доступны даты:\n"
                     aa = schedule.get_col(1, include_tailing_empty=False)[1:]
-                    b = list(map(lambda x: x[0], vals[1:]))
                     for i,j in enumerate(list(map(lambda x: x[0], vals[1:]))):
                         i += 1
-                        z = vals[i][1:max_col]
-                        for index, val in enumerate(z):
-                            if val == "":
-                                dates.update({f"{len(dates)+1}": (i +1, index+2)})
-                                msg += f"{len(dates)} - записаться на {j} в {vals[0][index+1]}\n"
-                                pass
+                        z = vals[i][0]
+                        msg += f"{len(dates) + 1} : {z}\n"
+                        dates.update({f"{len(dates)+1}": (i, 0)})
                         pass
-                    clients.update({sender_id: dates})
+                    clients.update({sender_id: [dates, 1]})
+                    self.Dialog(sender_id, "Этот бот поможет зарегистрироваться на собеседование\nСобеседование будет проходить в нашем офисе, который расположен недалеко от метро Сокол, по адресу Волоколамское шоссе, 1кА.\nПодробнее можно посмотреть по ссылке.\nhttps://drujite.ru/contacts/")
                     self.Dialog(sender_id, msg,keybaord=keyboards.confKB)
                 else: 
-                    self.Dialog(sender_id, "Вы уже записаны")
+                    self.Dialog(sender_id, "Вы уже записаны", keybaord= keyboards.undoKB)
             
-            elif msg_text.lower() == "отменить":
-                if val not in tmp:
+            elif msg_text.lower() == "отменить" or payload == '{\"mainMenu\":\"undo\"}':
+
+                if val in tmp:
                     msg = "Доступны даты:\n"
                     aa = schedule.get_col(1, include_tailing_empty=False)[1:]
                     b = list(map(lambda x: x[0], vals[1:]))
@@ -163,15 +161,29 @@ class Anceteur():
                         i += 1
                         z = vals[i][1:max_col]
                         for index, val in enumerate(z):
-                            if val == "":
-                                dates.update({f"{len(dates)+1}": (i +1, index+2)})
-                                msg += f"{len(dates)} - записаться на {j} в {vals[0][index+1]}\n"
-                                pass
-                        pass
+                            if val == f"{data['first_name']} {data['last_name']}":
+                                сell = schedule.cell((i + 1,index +2))
+                                schedule.cell((i + 1,index +2)).value = ""
+                                schedule.cell((i + 1,index +2)).color = (1,1,1,1)
+                                break
                     clients.update({sender_id: dates})
-                    self.Dialog(sender_id, msg ,keybaord=keyboards.confKB)
+                    self.Dialog(sender_id, "Запись отменена. Вы можете записаться на новую дату", keybaord=keyboards.beginKb)
                 pass
 
+            elif payload == '{\"mainMenu\":\"fuck_go_back\"}':
+                if val not in tmp:
+                    msg = "Доступны даты:\n"
+                    aa = schedule.get_col(1, include_tailing_empty=False)[1:]
+                    for i,j in enumerate(list(map(lambda x: x[0], vals[1:]))):
+                        i += 1
+                        z = vals[i][0]
+                        msg += f"{len(dates) + 1} : {z}\n"
+                        dates.update({f"{len(dates)+1}": (i, 0)})
+                        pass
+                    clients.update({sender_id: [dates, 1]})
+                    self.Dialog(sender_id, msg,keybaord=keyboards.confKB)
+                else: 
+                    self.Dialog(sender_id, "Вы уже записаны", keybaord=keyboards.undoKB)
             elif payload == '{\"mainMenu\":\"new_date\"}':
                 self.Dialog(sender_id, "Напишите даты и промежутки времени, в которое вы могли бы приехать на собеседование")
                 clients.update({sender_id: None})
@@ -179,6 +191,7 @@ class Anceteur():
 
             else:
                 if sender_id in clients.keys() and clients[sender_id] != {}:
+                    a = clients[sender_id]
                     if clients[sender_id] is None:
                         a = rec_max_col
                         b = rec_max_row
@@ -191,34 +204,51 @@ class Anceteur():
                         self.Dialog(sender_id, "Заявка на собеседование отправлена. С вами свяжутся")
                         clients.pop(sender_id)
                         pass
-                    elif msg_text in clients[sender_id].keys():
-                        a= clients[sender_id][msg_text]
-                        cell = schedule.cell(a)
-                        if cell.value == '':
-                            cell.formula = f'=HYPERLINK(\"{link}\"; \"{val}\")'
-                            schedule.adjust_column_width(a[1])
-                            cell.color = (0,1,0,1)
-                            clients.pop(sender_id)
-                            self.Dialog(usrId = sender_id, message = "Вы успешно записаны!")
-                        else:
-                            self.Dialog(usrId = sender_id, message = "Упс, кто-то успел записаться раньше, обновляем список.")
+                    elif clients[sender_id][1] == 1:
+                        if msg_text in clients[sender_id][0].keys():
                             if val not in tmp:
                                 msg = "Доступны даты:\n"
                                 aa = schedule.get_col(1, include_tailing_empty=False)[1:]
-                                b = list(map(lambda x: x[0], vals[1:]))
-                                for i,j in enumerate(list(map(lambda x: x[0], vals[1:]))):
-                                    i += 1
-                                    z = vals[i][1:max_col]
-                                    for index, val in enumerate(z):
-                                        if val == "":
-                                            dates.update({f"{len(dates)+1}": (i +1, index+2)})
-                                            msg += f"{len(dates)} - записаться на {j} в {vals[0][index+1]}\n"
-                                            pass
-                                    pass
-                                clients.update({sender_id: dates})
-                                self.Dialog(sender_id, msg)
+                                i = clients[sender_id][0][msg_text][0]
+                                z = vals[i][1:max_col]
+                                for index, val in enumerate(z):
+                                    if val == "":
+                                        dates.update({f"{len(dates)+1}": (i +1, index +2)})
+                                        msg += f"{len(dates)} - записаться на {vals[i][0]} в {vals[0][index+1]}\n"
+                                        pass
+                                pass
+                                clients.update({sender_id: [dates, 2]})
+                                self.Dialog(sender_id, msg,keybaord=keyboards.fuck_go_backKB)
+                    elif clients[sender_id][1] == 2:
+                        self.Dialog(sender_id, "Обращение к базе данных может занять некоторое время...")
+                        if msg_text in clients[sender_id][0].keys():
+                            a= clients[sender_id][0][msg_text]
+                            cell = schedule.cell(a)
+                            if cell.value == '':
+                                cell.formula = f'=HYPERLINK(\"{link}\"; \"{val}\")'
+                                schedule.adjust_column_width(a[1])
+                                cell.color = (0,1,0,1)
+                                clients.pop(sender_id)
+                                
+                                self.Dialog(usrId = sender_id, message = "Вы успешно записаны!\nЧтобы отменить запись, нажмите на соответствующую кнопку или введите 'Отменить'")
+                                self.Dialog(sender_id, "Собеседование будет проходить в нашем офисе, который расположен недалеко от метро Сокол, по адресу Волоколамское шоссе, 1кА.\nПодробнее можно посмотреть по ссылке.\nhttps://drujite.ru/contacts/", keybaord=keyboards.undoKB)
+                            else:
+                                self.Dialog(usrId = sender_id, message = "Упс, кто-то успел записаться раньше, обновляем список.")
+                                if val not in tmp:
+                                    msg = "Доступны даты:\n"
+                                    aa = schedule.get_col(1, include_tailing_empty=False)[1:]
+                                    for i,j in enumerate(list(map(lambda x: x[0], vals[1:]))):
+                                        i += 1
+                                        z = vals[i][0]
+                                        msg += f"{len(dates) + 1} : {z}\n"
+                                        dates.update({f"{len(dates)+1}": (i, 0)})
+                                        pass
+                                    clients.update({sender_id: [dates, 1]})
+                                    self.Dialog(sender_id, msg,keybaord=keyboards.confKB)
+                                else: 
+                                    self.Dialog(sender_id, "Вы уже записаны", keybaord= keyboards.undoKB)
+                                pass
                             pass
-                        pass
                     pass
                 
                 else:
@@ -249,6 +279,6 @@ class Anceteur():
                                                     "message": message
                                                 })
 
-
-a = Anceteur()
-a.auth()
+while True:
+    a = Anceteur()
+    a.auth()
